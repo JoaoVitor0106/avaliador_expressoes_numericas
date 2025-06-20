@@ -15,12 +15,11 @@ typedef struct {
     int capacity;
 } Stack;
 
-// Funções auxiliares para a pilha
+// Funções auxiliares para a pilha de floats
 Stack* createStack(int capacity) {
     Stack* stack = (Stack*)malloc(sizeof(Stack));
     stack->capacity = capacity;
     stack->top = -1;
-    // Capacidade inicial da pilha, ajustável
     stack->items = (float*)malloc(stack->capacity * sizeof(float));
     return stack;
 }
@@ -57,41 +56,32 @@ float peek(Stack *stack) {
 int isNumber(const char *str) {
     char *endptr;
     if (str == NULL || *str == '\0') return 0;
-
-    // Tenta converter a string para float
     strtod(str, &endptr);
-
-    // Verifica se a conversão consumiu a string inteira e se não é apenas um sinal +/-
-    // e que a string não é vazia ou composta apenas por espaços
     return endptr != str && *endptr == '\0' && !isspace((unsigned char)*str);
 }
 
 // Função principal para avaliar expressão pós-fixada
 float getValorPosFixa(char *StrPosFixa) {
-    // Fazer uma cópia de StrPosFixa porque strtok modifica a string.
     char *StrCopia = strdup(StrPosFixa);
     if (StrCopia == NULL) {
         fprintf(stderr, "Erro de alocação de memória para cópia da string.\n");
         exit(EXIT_FAILURE);
     }
 
-    Stack *stack = createStack(512); // Capacidade da pilha
-    char *token = strtok(StrCopia, " "); // Aqui ainda usamos strtok, mas a entrada já deve estar bem tokenizada
+    Stack *stack = createStack(512);
+    char *token = strtok(StrCopia, " ");
     
     while (token != NULL) {
         if (isNumber(token)) {
             push(stack, atof(token));
         } else {
-            // Operações binárias
             if (strcmp(token, "+") == 0 || strcmp(token, "-") == 0 || 
                 strcmp(token, "*") == 0 || strcmp(token, "/") == 0 || 
                 strcmp(token, "%") == 0 || strcmp(token, "^") == 0) {
                 
-                if (stack->top < 1) { // Precisa de pelo menos 2 operandos
+                if (stack->top < 1) {
                     fprintf(stderr, "Erro: Operação binária '%s' precisa de 2 operandos.\n", token);
-                    free(StrCopia);
-                    free(stack->items);
-                    free(stack);
+                    free(StrCopia); free(stack->items); free(stack);
                     exit(EXIT_FAILURE);
                 }
                 
@@ -103,79 +93,41 @@ float getValorPosFixa(char *StrPosFixa) {
                 else if (strcmp(token, "-") == 0) result = a - b;
                 else if (strcmp(token, "*") == 0) result = a * b;
                 else if (strcmp(token, "/") == 0) {
-                    if (b == 0) {
-                        fprintf(stderr, "Erro: Divisão por zero.\n");
-                        free(StrCopia);
-                        free(stack->items);
-                        free(stack);
-                        exit(EXIT_FAILURE);
-                    }
+                    if (b == 0) { fprintf(stderr, "Erro: Divisão por zero.\n"); free(StrCopia); free(stack->items); free(stack); exit(EXIT_FAILURE); }
                     result = a / b;
                 }
-                else if (strcmp(token, "%") == 0) {
-                    result = fmod(a, b);
-                }
+                else if (strcmp(token, "%") == 0) { result = fmod(a, b); }
                 else if (strcmp(token, "^") == 0) result = pow(a, b);
                 
                 push(stack, result);
             }
-            // Operações unárias
             else if (strcmp(token, "raiz") == 0 || strcmp(token, "sen") == 0 || 
                     strcmp(token, "cos") == 0 || strcmp(token, "tg") == 0 || 
                     strcmp(token, "log") == 0) {
                 
-                if (isStackEmpty(stack)) { // Precisa de pelo menos 1 operando
+                if (isStackEmpty(stack)) {
                     fprintf(stderr, "Erro: Operação unária '%s' precisa de 1 operando.\n", token);
-                    free(StrCopia);
-                    free(stack->items);
-                    free(stack);
+                    free(StrCopia); free(stack->items); free(stack);
                     exit(EXIT_FAILURE);
                 }
                 
                 float a = pop(stack);
                 float result;
                 
-                if (strcmp(token, "raiz") == 0) {
-                    if (a < 0) {
-                        fprintf(stderr, "Erro: Raiz quadrada de número negativo.\n");
-                        free(StrCopia);
-                        free(stack->items);
-                        free(stack);
-                        exit(EXIT_FAILURE);
-                    }
-                    result = sqrt(a);
-                }
-                else if (strcmp(token, "sen") == 0) result = sin(a * PI / 180.0); // converter para radianos
-                else if (strcmp(token, "cos") == 0) result = cos(a * PI / 180.0); // converter para radianos
+                if (strcmp(token, "raiz") == 0) { if (a < 0) { fprintf(stderr, "Erro: Raiz quadrada de número negativo.\n"); free(StrCopia); free(stack->items); free(stack); exit(EXIT_FAILURE); } result = sqrt(a); }
+                else if (strcmp(token, "sen") == 0) result = sin(a * PI / 180.0);
+                else if (strcmp(token, "cos") == 0) result = cos(a * PI / 180.0);
                 else if (strcmp(token, "tg") == 0) {
-                    // Prevenir tangentes de ângulos como 90, 270 graus, etc.
                     double angle_mod_180 = fmod(fabs(a), 180.0);
-                    if (fabs(angle_mod_180 - 90.0) < 0.001 || fabs(angle_mod_180 - 270.0) < 0.001) {
-                         fprintf(stderr, "Erro: Tangente de ângulo invalido (90, 270 graus, etc.).\n");
-                         free(StrCopia);
-                         free(stack->items);
-                         free(stack);
-                         exit(EXIT_FAILURE);
-                    }
-                    result = tan(a * PI / 180.0); // converter para radianos
+                    if (fabs(angle_mod_180 - 90.0) < 0.001 || fabs(angle_mod_180 - 270.0) < 0.001) { fprintf(stderr, "Erro: Tangente de ângulo invalido (90, 270 graus, etc.).\n"); free(StrCopia); free(stack->items); free(stack); exit(EXIT_FAILURE); }
+                    result = tan(a * PI / 180.0);
                 }
-                else if (strcmp(token, "log") == 0) {
-                    if (a <= 0) {
-                        fprintf(stderr, "Erro: Logaritmo de número não positivo.\n");
-                        free(StrCopia);
-                        free(stack->items);
-                        free(stack);
-                        exit(EXIT_FAILURE);
-                    }
-                    result = log10(a);
-                }
+                else if (strcmp(token, "log") == 0) { if (a <= 0) { fprintf(stderr, "Erro: Logaritmo de número não positivo.\n"); free(StrCopia); free(stack->items); free(stack); exit(EXIT_FAILURE); } result = log10(a); }
                 
                 push(stack, result);
             } else {
                 fprintf(stderr, "Erro: Operador desconhecido ou expressão mal formada '%s'\n", token);
-                free(StrCopia);
-                free(stack->items);
-                free(stack);
+                free(StrCopia); free(stack->items); free(stack);
                 exit(EXIT_FAILURE);
             }
         }
@@ -184,28 +136,23 @@ float getValorPosFixa(char *StrPosFixa) {
     
     if (stack->top != 0) {
         fprintf(stderr, "Erro: Expressão mal formada - operandos sobrando na pilha.\n");
-        free(StrCopia);
-        free(stack->items);
-        free(stack);
+        free(StrCopia); free(stack->items); free(stack);
         exit(EXIT_FAILURE);
     }
     
     float finalResult = pop(stack);
-    free(StrCopia);
-    free(stack->items);
-    free(stack);
+    free(StrCopia); free(stack->items); free(stack);
     return finalResult; 
 }
 
-// ===== Conversão de infixa para posfixa =====
-
+// ===== Pilha para strings (para conversão infixa/posfixa) =====
 typedef struct {
-    char items[512][32]; // Ajustado para suportar tokens maiores
+    char items[512][512]; // Aumentado para suportar expressões infixas maiores
     int top;
 } StackStr;
 
 void pushStr(StackStr* s, const char* item) {
-    if (s->top == 511) { // Capacidade máxima de 512, top vai até 511
+    if (s->top == 511) {
         fprintf(stderr, "Erro: Pilha de strings cheia. Aumente a capacidade.\n");
         exit(EXIT_FAILURE);
     }
@@ -256,25 +203,20 @@ int ehFuncao(const char* token) {
            strcmp(token, "raiz") == 0;
 }
 
-// Função para extrair o próximo token de uma string de expressão
-// Lida com múltiplos caracteres, operadores de um caractere, funções e números
-// sem exigir espaços entre eles.
+// Função para extrair o próximo token de uma string de expressão (sem espaços exigidos)
 char* getNextToken(char **expr_ptr, char *token_buffer) {
     char *expr = *expr_ptr;
     int i = 0;
 
-    // Pular espaços em branco no início
     while (isspace((unsigned char)*expr)) {
         expr++;
     }
 
     if (*expr == '\0') {
-        *expr_ptr = expr; // Sinaliza que a string terminou
+        *expr_ptr = expr;
         return NULL;
     }
 
-    // Tentar identificar funções primeiro (multi-caracteres)
-    // Assegura que a função seja a mais longa possível para evitar "log" em "logaritmo"
     if (strncmp(expr, "raiz", 4) == 0) {
         strcpy(token_buffer, "raiz");
         *expr_ptr = expr + 4;
@@ -300,40 +242,32 @@ char* getNextToken(char **expr_ptr, char *token_buffer) {
         *expr_ptr = expr + 3;
         return token_buffer;
     }
-    // Identificar operadores e parênteses de um caractere
     else if (strchr("+-*/%^()", *expr) != NULL) {
         token_buffer[0] = *expr;
         token_buffer[1] = '\0';
         *expr_ptr = expr + 1;
         return token_buffer;
     }
-    // Identificar números (pode incluir ponto decimal e sinal negativo)
-    // Permite número iniciar com '.' (ex: .5)
-    // Permite número iniciar com '-' (ex: -5)
     else if (isdigit((unsigned char)*expr) || (*expr == '.' && isdigit((unsigned char)*(expr + 1))) ||
              (*expr == '-' && (isdigit((unsigned char)*(expr + 1)) || (*(expr + 1) == '.' && isdigit((unsigned char)*(expr + 2))))) ) {
         
-        // Se começar com '-', inclua-o no número
         if (*expr == '-') {
             token_buffer[i++] = *expr;
             expr++;
         }
-
-        // Copia a parte inteira e decimal do número
         while (isdigit((unsigned char)*expr) || *expr == '.') {
             token_buffer[i++] = *expr;
             expr++;
         }
         token_buffer[i] = '\0';
-        *expr_ptr = expr; // Atualiza o ponteiro para a string para a próxima chamada
+        *expr_ptr = expr;
         return token_buffer;
     }
     else {
-        // Captura o próximo caractere como um token desconhecido
         token_buffer[0] = *expr;
         token_buffer[1] = '\0';
         *expr_ptr = expr + 1;
-        return token_buffer; // Retorna o caractere desconhecido para tratamento de erro
+        return token_buffer;
     }
 }
 
@@ -347,11 +281,11 @@ void replaceCommasWithDots(char *str) {
     }
 }
 
-// Função para aplicar um operador aos operandos e empilhar o resultado
+// Função para aplicar um operador aos operandos e empilhar o resultado (para getValorInFixa)
 void applyOperator(Stack *operandStack, StackStr *operatorStack) {
     char *op = popStr(operatorStack);
 
-    if (ehOperador(op)) { // Operadores binários
+    if (ehOperador(op)) {
         if (isStackEmpty(operandStack) || operandStack->top < 1) {
             fprintf(stderr, "Erro: Poucos operandos para operador binário '%s'.\n", op);
             exit(EXIT_FAILURE);
@@ -364,17 +298,14 @@ void applyOperator(Stack *operandStack, StackStr *operatorStack) {
         else if (strcmp(op, "-") == 0) result = a - b;
         else if (strcmp(op, "*") == 0) result = a * b;
         else if (strcmp(op, "/") == 0) {
-            if (b == 0) {
-                fprintf(stderr, "Erro: Divisão por zero.\n");
-                exit(EXIT_FAILURE);
-            }
+            if (b == 0) { fprintf(stderr, "Erro: Divisão por zero.\n"); exit(EXIT_FAILURE); }
             result = a / b;
         }
         else if (strcmp(op, "%") == 0) result = fmod(a, b);
         else if (strcmp(op, "^") == 0) result = pow(a, b);
         push(operandStack, result);
     }
-    else if (ehFuncao(op)) { // Funções (operadores unários)
+    else if (ehFuncao(op)) {
         if (isStackEmpty(operandStack)) {
             fprintf(stderr, "Erro: Poucos operandos para função '%s'.\n", op);
             exit(EXIT_FAILURE);
@@ -382,117 +313,93 @@ void applyOperator(Stack *operandStack, StackStr *operatorStack) {
         float a = pop(operandStack);
         float result;
 
-        if (strcmp(op, "raiz") == 0) {
-            if (a < 0) {
-                fprintf(stderr, "Erro: Raiz quadrada de número negativo.\n");
-                exit(EXIT_FAILURE);
-            }
-            result = sqrt(a);
-        }
+        if (strcmp(op, "raiz") == 0) { if (a < 0) { fprintf(stderr, "Erro: Raiz quadrada de número negativo.\n"); exit(EXIT_FAILURE); } result = sqrt(a); }
         else if (strcmp(op, "sen") == 0) result = sin(a * PI / 180.0);
         else if (strcmp(op, "cos") == 0) result = cos(a * PI / 180.0);
         else if (strcmp(op, "tg") == 0) {
             double angle_mod_180 = fmod(fabs(a), 180.0);
-            if (fabs(angle_mod_180 - 90.0) < 0.001 || fabs(angle_mod_180 - 270.0) < 0.001) {
-                 fprintf(stderr, "Erro: Tangente de ângulo invalido (90, 270 graus, etc.).\n");
-                 exit(EXIT_FAILURE);
-            }
+            if (fabs(angle_mod_180 - 90.0) < 0.001 || fabs(angle_mod_180 - 270.0) < 0.001) { fprintf(stderr, "Erro: Tangente de ângulo invalido (90, 270 graus, etc.).\n"); exit(EXIT_FAILURE); }
             result = tan(a * PI / 180.0);
         }
-        else if (strcmp(op, "log") == 0) {
-            if (a <= 0) {
-                fprintf(stderr, "Erro: Logaritmo de número não positivo.\n");
-                exit(EXIT_FAILURE);
-            }
-            result = log10(a);
-        }
+        else if (strcmp(op, "log") == 0) { if (a <= 0) { fprintf(stderr, "Erro: Logaritmo de número não positivo.\n"); exit(EXIT_FAILURE); } result = log10(a); }
         push(operandStack, result);
     }
-    // Não precisamos de um else, pois o erro de token desconhecido já foi tratado no getNextToken
 }
 
 
 // Implementação da função getFormaPosFixa
 char* getFormaPosFixa(char *Str) {
-    static char saida[512]; // Buffer estático para a string de saída
-    saida[0] = '\0'; // Limpa a string de saída
+    static char saida[512];
+    saida[0] = '\0';
 
     StackStr pilha;
     pilha.top = -1;
 
-    // Criar uma cópia da string de entrada e pré-processá-la
     char *expressao_copia = strdup(Str);
     if (expressao_copia == NULL) {
         fprintf(stderr, "Erro de alocação de memória para cópia da expressão.\n");
         saida[0] = '\0';
         return saida;
     }
-    replaceCommasWithDots(expressao_copia); // Chama a função para substituir ',' por '.'
+    replaceCommasWithDots(expressao_copia);
 
-    char *expressao_ptr = expressao_copia; // Ponteiro que getNextToken irá avançar
-    char token_buffer[32]; // Buffer para armazenar o token atual
-
+    char *expressao_ptr = expressao_copia;
+    char token_buffer[32];
     char* token;
-    // O loop agora usa getNextToken para extrair os tokens diretamente da string original
+
     while ((token = getNextToken(&expressao_ptr, token_buffer)) != NULL) {
-        if (strcmp(token, "") == 0) continue; // Pular tokens vazios se houver
+        if (strcmp(token, "") == 0) continue;
         
-        if (isNumber(token)) { // Usar a função isNumber para identificar operandos
+        if (isNumber(token)) {
             strcat(saida, token);
             strcat(saida, " ");
         }
-        else if (ehFuncao(token)) { // É uma função
+        else if (ehFuncao(token)) {
             pushStr(&pilha, token);
         }
-        else if (strcmp(token, "(") == 0) { // É um parêntese de abertura
+        else if (strcmp(token, "(") == 0) {
             pushStr(&pilha, token);
         }
-        else if (strcmp(token, ")") == 0) { // É um parêntese de fechamento
+        else if (strcmp(token, ")") == 0) {
             while (!isEmptyStr(&pilha) && strcmp(peekStr(&pilha), "(") != 0) {
                 strcat(saida, popStr(&pilha));
                 strcat(saida, " ");
             }
             if (!isEmptyStr(&pilha) && strcmp(peekStr(&pilha), "(") == 0) {
-                popStr(&pilha); // Desempilha o '('
+                popStr(&pilha);
             } else {
                 fprintf(stderr, "Erro: Parênteses desbalanceados na expressão infixa.\n");
-                saida[0] = '\0'; // Limpa a saída em caso de erro
+                saida[0] = '\0';
                 free(expressao_copia);
                 return saida;
             }
-            // Se o topo da pilha é uma função, desempilha para a saída
             if (!isEmptyStr(&pilha) && ehFuncao(peekStr(&pilha))) {
                 strcat(saida, popStr(&pilha));
                 strcat(saida, " ");
             }
         }
-        else if (ehOperador(token)) { // É um operador
+        else if (ehOperador(token)) {
             while (!isEmptyStr(&pilha) &&
-                   (ehFuncao(peekStr(&pilha)) || ehOperador(peekStr(&pilha))) && // Compara com funções ou operadores na pilha
+                   (ehFuncao(peekStr(&pilha)) || ehOperador(peekStr(&pilha))) &&
                    (prioridade(peekStr(&pilha)) > prioridade(token) ||
-                    (prioridade(peekStr(&pilha)) == prioridade(token) && strcmp(token, "^") != 0))) { // Associatividade à esquerda para a maioria
-                // Associatividade da direita para a esquerda para o operador de potência '^'
-                // Se o operador no topo da pilha é '^' e o token atual também é '^', não desempilha (associa à direita)
-                // Se não for '^', desempilha se prioridade igual ou maior (associa à esquerda)
+                    (prioridade(peekStr(&pilha)) == prioridade(token) && strcmp(token, "^") != 0))) {
                 strcat(saida, popStr(&pilha));
                 strcat(saida, " ");
             }
             pushStr(&pilha, token);
         }
         else {
-            // Token desconhecido
             fprintf(stderr, "Erro: Token desconhecido na expressão infixa: '%s'\n", token);
-            saida[0] = '\0'; // Limpa a saída em caso de erro
+            saida[0] = '\0';
             free(expressao_copia);
             return saida;
         }
     }
 
-    // Desempilhar quaisquer operadores restantes
     while (!isEmptyStr(&pilha)) {
         if (strcmp(peekStr(&pilha), "(") == 0) {
             fprintf(stderr, "Erro: Parênteses desbalanceados na expressão infixa ( '(' sem ')').\n");
-            saida[0] = '\0'; // Limpa a saída em caso de erro
+            saida[0] = '\0';
             free(expressao_copia);
             return saida;
         }
@@ -500,29 +407,87 @@ char* getFormaPosFixa(char *Str) {
         strcat(saida, " ");
     }
 
-    // Remover o último espaço se houver
     if (strlen(saida) > 0 && saida[strlen(saida) - 1] == ' ') {
         saida[strlen(saida) - 1] = '\0';
     }
 
-    free(expressao_copia); // Libera a cópia da string
+    free(expressao_copia);
     return saida;
 }
 
-// Versão provisória para getFormaInFixa - precisa de implementação real
+// Implementação da função getFormaInFixa (converter de pós-fixa para infixa)
 char* getFormaInFixa(char* Str) {
-    // Esta é uma implementação dummy. Você precisa implementar a lógica real
-    // para converter uma expressão pós-fixa para infixa.
-    // Isso geralmente envolve o uso de uma pilha para construir a expressão infixa
-    // adicionando parênteses conforme necessário para manter a precedência.
-    static char dummy[512];
-    snprintf(dummy, sizeof(dummy), "Ainda nao implementado para '%s'", Str);
-    return dummy;
+    static char result_infixa[512];
+    result_infixa[0] = '\0';
+
+    StackStr pilha; // Pilha para armazenar sub-expressões infixas
+    pilha.top = -1;
+
+    // Fazer uma cópia de Str porque strtok modifica a string
+    char *StrCopia = strdup(Str);
+    if (StrCopia == NULL) {
+        fprintf(stderr, "Erro de alocação de memória para cópia da string.\n");
+        return result_infixa;
+    }
+    // Não precisa de replaceCommasWithDots aqui, pois a entrada é pós-fixa e já deve usar pontos
+
+    char *token = strtok(StrCopia, " ");
+
+    while (token != NULL) {
+        if (isNumber(token)) {
+            pushStr(&pilha, token);
+        } else if (ehFuncao(token)) {
+            if (isEmptyStr(&pilha)) {
+                fprintf(stderr, "Erro: Poucos operandos para função '%s' em expressao pos-fixa.\n", token);
+                free(StrCopia);
+                return result_infixa;
+            }
+            char *operand = popStr(&pilha);
+            snprintf(result_infixa, sizeof(result_infixa), "%s(%s)", token, operand);
+            pushStr(&pilha, result_infixa);
+        } else if (ehOperador(token)) {
+            if (isEmptyStr(&pilha) || pilha.top < 1) {
+                fprintf(stderr, "Erro: Poucos operandos para operador binário '%s' em expressao pos-fixa.\n", token);
+                free(StrCopia);
+                return result_infixa;
+            }
+            char *operand2 = popStr(&pilha);
+            char *operand1 = popStr(&pilha);
+            
+            // Lógica para adicionar parênteses
+            // Se o operador no topo da pilha tem prioridade menor que o operador atual, adicione parênteses.
+            // Para associatividade, se for o mesmo operador e for associatividade da direita (como ^),
+            // ou se for menor prioridade, adicione parênteses.
+            
+            // Exemplo simples: sempre adicionar parênteses para operadores binários para garantir correção
+            // Para uma implementação mais avançada, compararia a prioridade do operador atual
+            // com os operadores que formaram operand1 e operand2 (se fossem sub-expressões).
+            // Para este trabalho, um parêntese "seguro" é geralmente aceitável.
+
+            snprintf(result_infixa, sizeof(result_infixa), "(%s %s %s)", operand1, token, operand2);
+            pushStr(&pilha, result_infixa);
+
+        } else {
+            fprintf(stderr, "Erro: Token desconhecido na expressao pos-fixa: '%s'\n", token);
+            free(StrCopia);
+            return result_infixa;
+        }
+        token = strtok(NULL, " ");
+    }
+
+    if (pilha.top != 0) {
+        fprintf(stderr, "Erro: Expressão pos-fixa mal formada - operandos sobrando na pilha.\n");
+        free(StrCopia);
+        return result_infixa;
+    }
+
+    strcpy(result_infixa, popStr(&pilha));
+    free(StrCopia);
+    return result_infixa;
 }
 
 // Calcula o valor de Str (na forma infixa)
 float getValorInFixa(char *StrInFixa) {
-    // Fazer uma cópia da string de entrada e pré-processá-la (vírgulas para pontos)
     char *expressao_copia = strdup(StrInFixa);
     if (expressao_copia == NULL) {
         fprintf(stderr, "Erro de alocação de memória para cópia da expressão.\n");
@@ -530,8 +495,8 @@ float getValorInFixa(char *StrInFixa) {
     }
     replaceCommasWithDots(expressao_copia);
 
-    Stack *operandStack = createStack(512); // Pilha para números
-    StackStr operatorStack; // Pilha para operadores (char arrays)
+    Stack *operandStack = createStack(512);
+    StackStr operatorStack;
     operatorStack.top = -1;
 
     char *expr_ptr = expressao_copia;
@@ -539,7 +504,7 @@ float getValorInFixa(char *StrInFixa) {
     char *token;
 
     while ((token = getNextToken(&expr_ptr, token_buffer)) != NULL) {
-        if (strcmp(token, "") == 0) continue; // Pular tokens vazios
+        if (strcmp(token, "") == 0) continue;
 
         if (isNumber(token)) {
             push(operandStack, atof(token));
@@ -552,15 +517,11 @@ float getValorInFixa(char *StrInFixa) {
                 applyOperator(operandStack, &operatorStack);
             }
             if (!isEmptyStr(&operatorStack) && strcmp(peekStr(&operatorStack), "(") == 0) {
-                popStr(&operatorStack); // Desempilha o '('
+                popStr(&operatorStack);
             } else {
                 fprintf(stderr, "Erro: Parênteses desbalanceados na expressão infixa.\n");
-                free(expressao_copia);
-                free(operandStack->items);
-                free(operandStack);
-                exit(EXIT_FAILURE);
+                free(expressao_copia); free(operandStack->items); free(operandStack); exit(EXIT_FAILURE);
             }
-            // Após desempilhar '(', se houver uma função no topo, aplica-a
             if (!isEmptyStr(&operatorStack) && ehFuncao(peekStr(&operatorStack))) {
                 applyOperator(operandStack, &operatorStack);
             }
@@ -568,42 +529,30 @@ float getValorInFixa(char *StrInFixa) {
             while (!isEmptyStr(&operatorStack) &&
                    (ehFuncao(peekStr(&operatorStack)) || ehOperador(peekStr(&operatorStack))) &&
                    (prioridade(peekStr(&operatorStack)) > prioridade(token) ||
-                    (prioridade(peekStr(&operatorStack)) == prioridade(token) && strcmp(token, "^") != 0))) { // Associatividade para ^
+                    (prioridade(peekStr(&operatorStack)) == prioridade(token) && strcmp(token, "^") != 0))) {
                 applyOperator(operandStack, &operatorStack);
             }
             pushStr(&operatorStack, token);
         } else {
             fprintf(stderr, "Erro: Token desconhecido na expressão infixa: '%s'.\n", token);
-            free(expressao_copia);
-            free(operandStack->items);
-            free(operandStack);
-            exit(EXIT_FAILURE);
+            free(expressao_copia); free(operandStack->items); free(operandStack); exit(EXIT_FAILURE);
         }
     }
 
-    // Processar quaisquer operadores restantes na pilha de operadores
     while (!isEmptyStr(&operatorStack)) {
         if (strcmp(peekStr(&operatorStack), "(") == 0) {
             fprintf(stderr, "Erro: Parênteses desbalanceados na expressão infixa ( '(' sem ')').\n");
-            free(expressao_copia);
-            free(operandStack->items);
-            free(operandStack);
-            exit(EXIT_FAILURE);
+            free(expressao_copia); free(operandStack->items); free(operandStack); exit(EXIT_FAILURE);
         }
         applyOperator(operandStack, &operatorStack);
     }
 
     if (operandStack->top != 0) {
         fprintf(stderr, "Erro: Expressão mal formada - mais de um operando restante na pilha.\n");
-        free(expressao_copia);
-        free(operandStack->items);
-        free(operandStack);
-        exit(EXIT_FAILURE);
+        free(expressao_copia); free(operandStack->items); free(operandStack); exit(EXIT_FAILURE);
     }
 
     float finalResult = pop(operandStack);
-    free(expressao_copia);
-    free(operandStack->items);
-    free(operandStack);
+    free(expressao_copia); free(operandStack->items); free(operandStack);
     return finalResult;
 }
