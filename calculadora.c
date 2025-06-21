@@ -1,5 +1,5 @@
-//expressao.c
-#include "expressao.h"
+//calculadora.c
+#include "calculadora.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,7 +147,7 @@ float getValorPosFixa(char *StrPosFixa) {
 
 // ===== Pilha para strings (para conversão infixa/posfixa) =====
 typedef struct {
-    char items[512][512]; // Aumentado para suportar expressões infixas maiores
+    char items[512][512];
     int top;
 } StackStr;
 
@@ -429,7 +429,6 @@ char* getFormaInFixa(char* Str) {
         fprintf(stderr, "Erro de alocação de memória para cópia da string.\n");
         return result_infixa;
     }
-    // Não precisa de replaceCommasWithDots aqui, pois a entrada é pós-fixa e já deve usar pontos
 
     char *token = strtok(StrCopia, " ");
 
@@ -453,16 +452,6 @@ char* getFormaInFixa(char* Str) {
             }
             char *operand2 = popStr(&pilha);
             char *operand1 = popStr(&pilha);
-            
-            // Lógica para adicionar parênteses
-            // Se o operador no topo da pilha tem prioridade menor que o operador atual, adicione parênteses.
-            // Para associatividade, se for o mesmo operador e for associatividade da direita (como ^),
-            // ou se for menor prioridade, adicione parênteses.
-            
-            // Exemplo simples: sempre adicionar parênteses para operadores binários para garantir correção
-            // Para uma implementação mais avançada, compararia a prioridade do operador atual
-            // com os operadores que formaram operand1 e operand2 (se fossem sub-expressões).
-            // Para este trabalho, um parêntese "seguro" é geralmente aceitável.
 
             snprintf(result_infixa, sizeof(result_infixa), "(%s %s %s)", operand1, token, operand2);
             pushStr(&pilha, result_infixa);

@@ -1,4 +1,4 @@
-//expressao.h
+//calculadora.h
 #ifndef EXPRESSAO_H
 #define EXPRESSAO_H
 

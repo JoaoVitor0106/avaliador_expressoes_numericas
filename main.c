@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "expressao.h"
+#include "calculadora.h"
 
 // Função auxiliar para exibir o menu
 void mostrarMenu() {
@@ -23,13 +23,13 @@ int main() {
     do {
         mostrarMenu();
         scanf("%d", &opcao);
-        getchar(); // Consumir o '\n' que fica no buffer após o scanf
+        getchar();
 
         switch(opcao) {
             case 1:
                 printf("Digite a expressao infixa:\n");
                 fgets(entrada, sizeof(entrada), stdin);
-                entrada[strcspn(entrada, "\n")] = '\0'; // Remove o '\n'
+                entrada[strcspn(entrada, "\n")] = '\0';
 
                 strcpy(expr.inFixa, entrada);
                 strcpy(expr.posFixa, getFormaPosFixa(entrada));
